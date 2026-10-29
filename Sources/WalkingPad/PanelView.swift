@@ -25,6 +25,19 @@ struct PanelView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            if !pad.connected {
+                Button {
+                    pad.connect()
+                } label: {
+                    Label(pad.busy ? "Connecting…" : "Connect", systemImage: "antenna.radiowaves.left.and.right")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(pad.busy || pad.connection == .bluetoothOff || pad.connection == .unauthorized)
+                .help("Connect to your WalkingPad over Bluetooth")
+            }
+
             if pad.connected {
                 Divider()
                 beltControls

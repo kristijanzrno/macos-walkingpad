@@ -35,9 +35,16 @@ final class StatusItemController: NSObject {
             pad: pad,
             openSettings: { [weak self] in self?.close(); openSettings() },
             quit: { NSApp.terminate(nil) },
-            onSize: { [weak self] size in self?.resizePanel(to: size) }
+            onSize: { [weak self] _ in self?.resizePanel() }
         ))
-        panel.onResignKey = { [weak self] in self?.close() }
+        // Close when another app comes forward. Not on resignKey: when macOS
+        // declines to activate us (opened from the CLI, say), the panel loses
+        // key status straight away and would vanish as soon as it appeared.
+        // Clicks elsewhere are caught by the outside-click monitor in open().
+        NotificationCenter.default.addObserver(forName: NSApplication.didResignActiveNotification,
+                                               object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.close() }
+        }
 
         eventMonitors.append(NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] e in
             guard let self, e.window == self.statusItem.button?.window else { return e }
@@ -128,7 +135,7 @@ final class StatusItemController: NSObject {
         let screen = buttonWindow.screen ?? NSScreen.main
         panel.anchor = NSPoint(x: buttonFrame.minX, y: buttonFrame.minY - 6)
         panel.screenFrame = screen?.visibleFrame ?? .zero
-        resizePanel(to: panel.contentSize)
+        resizePanel()
         // Activate like a system menu bar extra, so controls draw in their
         // active colours and the keyboard shortcuts reach the panel.
         NSApp.activate()
@@ -154,7 +161,10 @@ final class StatusItemController: NSObject {
         updateButton()
     }
 
-    private func resizePanel(to size: CGSize) {
+    /// Sizes the panel to the SwiftUI content's ideal size, measured fresh
+    /// each time so it never shows a stale height.
+    private func resizePanel() {
+        let size = panel.hosting.fittingSize
         guard size.width > 0, size.height > 0 else { return }
         panel.place(size: size)
     }
@@ -198,10 +208,12 @@ final class MenuBarPanel: NSPanel {
     var screenFrame = NSRect.zero
 
     private let cornerRadius: CGFloat
+    private(set) var hosting: NSHostingView<AnyView>!
 
     init<Content: View>(content: Content) {
-        let hosting = NSHostingView(rootView: content)
+        let hosting = NSHostingView(rootView: AnyView(content))
         hosting.sizingOptions = []
+        self.hosting = hosting
 
         if #available(macOS 26.0, *) {
             cornerRadius = 22
@@ -254,8 +266,6 @@ final class MenuBarPanel: NSPanel {
         super.resignKey()
         onResignKey?()
     }
-
-    var contentSize: CGSize { contentView?.frame.size ?? .zero }
 
     /// Size the panel to its content, hanging from the anchor and kept on screen.
     func place(size: CGSize) {

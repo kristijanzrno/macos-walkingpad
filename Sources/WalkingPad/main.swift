@@ -35,7 +35,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "close": statusItem.close()
         case "popup": statusItem.toggle()
         case "status":
-            let data = try? JSONSerialization.data(withJSONObject: pad.snapshot, options: [.sortedKeys])
+            var snapshot = pad.snapshot
+            snapshot["popupOpen"] = statusItem.isOpen
+            let data = try? JSONSerialization.data(withJSONObject: snapshot, options: [.sortedKeys])
             return data.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         default:
             if let err = pad.perform(line) { return "error: \(err)" }

@@ -1,11 +1,10 @@
 class Walkingpad < Formula
   desc "Control a KingSmith WalkingPad treadmill from the macOS menu bar"
   homepage "https://github.com/kristijanzrno/macos-walkingpad"
-  # SSH, so the tap and the source both work while the repository is private.
-  url "git@github.com:kristijanzrno/macos-walkingpad.git", using: :git, tag: "v1.0.2"
+  url "https://github.com/kristijanzrno/macos-walkingpad.git", tag: "v1.0.2"
   version "1.0.2"
   license "MIT"
-  head "git@github.com:kristijanzrno/macos-walkingpad.git", using: :git, branch: "main"
+  head "https://github.com/kristijanzrno/macos-walkingpad.git", branch: "main"
 
   depends_on xcode: ["16.0", :build]
   depends_on macos: :sonoma

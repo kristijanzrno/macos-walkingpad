@@ -56,7 +56,7 @@ The quickest route is Homebrew. See [Homebrew](#homebrew) at the end.
 To build it yourself:
 
 ```bash
-git clone git@github.com:kristijanzrno/macos-walkingpad.git
+git clone https://github.com/kristijanzrno/macos-walkingpad.git
 cd macos-walkingpad
 scripts/build-app.sh --install
 ```
@@ -213,12 +213,8 @@ The repository is a Homebrew tap. Homebrew builds WalkingPad from source on
 your Mac, so you need Xcode 16 or later installed. Because the build happens
 locally, macOS doesn't flag the app as downloaded from the internet.
 
-While the repository is private, the tap and the source are fetched over SSH,
-so your SSH key needs access to the repository (check with
-`ssh -T git@github.com`).
-
 ```bash
-brew tap kristijanzrno/walkingpad git@github.com:kristijanzrno/macos-walkingpad.git
+brew tap kristijanzrno/walkingpad https://github.com/kristijanzrno/macos-walkingpad.git
 brew trust kristijanzrno/walkingpad
 brew install walkingpad
 ```

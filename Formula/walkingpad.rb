@@ -1,8 +1,8 @@
 class Walkingpad < Formula
   desc "Control a KingSmith WalkingPad treadmill from the macOS menu bar"
   homepage "https://github.com/kristijanzrno/macos-walkingpad"
-  url "https://github.com/kristijanzrno/macos-walkingpad.git", tag: "v1.0.2"
-  version "1.0.2"
+  url "https://github.com/kristijanzrno/macos-walkingpad.git", tag: "v1.0.3"
+  version "1.0.3"
   license "MIT"
   head "https://github.com/kristijanzrno/macos-walkingpad.git", branch: "main"
 

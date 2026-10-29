@@ -168,12 +168,8 @@ final class StatusItemController: NSObject {
     /// Before the content has reported a size, measure it directly.
     private func resizePanel() {
         var size = contentSize
-        if size.width <= 0 || size.height <= 0 {
-            size = panel.hosting.fittingSize
-        }
-        if size.width <= 0 || size.height <= 0 {
-            size = CGSize(width: PanelView.width, height: 480)
-        }
+        if size.width <= 0 || size.height <= 0 { size = panel.measure() }
+        if size.width <= 0 || size.height <= 0 { size = CGSize(width: PanelView.width, height: 480) }
         panel.place(size: size)
     }
 
@@ -210,23 +206,39 @@ final class StatusItemController: NSObject {
 /// A borderless, non-activating panel that hangs off the menu bar, with the
 /// system's own popup material (Liquid Glass on macOS 26).
 final class MenuBarPanel: NSPanel {
-    var onResignKey: (() -> Void)?
     /// Top-left corner the panel hangs from, in screen coordinates.
     var anchor = NSPoint.zero
     var screenFrame = NSRect.zero
 
-    private let cornerRadius: CGFloat
-    private(set) var hosting: NSHostingView<AnyView>!
+    let hosting: NSHostingView<AnyView>
+    private let background: NSView
 
     init<Content: View>(content: Content) {
-        let hosting = NSHostingView(rootView: AnyView(content))
-        hosting.sizingOptions = [.intrinsicContentSize]
-        self.hosting = hosting
+        // Sized by hand in place(size:), never by Auto Layout: the hosting
+        // view's own size constraints fight the window frame and leave the
+        // content clipped inside a box of the old size.
+        hosting = NSHostingView(rootView: AnyView(content))
+        hosting.sizingOptions = []
 
+        let cornerRadius: CGFloat
         if #available(macOS 26.0, *) {
             cornerRadius = 22
+            let glass = NSGlassEffectView()
+            glass.cornerRadius = cornerRadius
+            glass.contentView = hosting
+            background = glass
         } else {
             cornerRadius = 12
+            let effect = NSVisualEffectView()
+            effect.material = .popover
+            effect.state = .active
+            effect.blendingMode = .behindWindow
+            effect.wantsLayer = true
+            effect.layer?.cornerRadius = cornerRadius
+            effect.layer?.cornerCurve = .continuous
+            effect.layer?.masksToBounds = true
+            effect.addSubview(hosting)
+            background = effect
         }
 
         super.init(contentRect: NSRect(x: 0, y: 0, width: PanelView.width, height: 400),
@@ -240,39 +252,17 @@ final class MenuBarPanel: NSPanel {
         hidesOnDeactivate = false
         animationBehavior = .utilityWindow
 
-        let background: NSView
-        if #available(macOS 26.0, *) {
-            let glass = NSGlassEffectView()
-            glass.cornerRadius = cornerRadius
-            glass.contentView = hosting
-            background = glass
-        } else {
-            let effect = NSVisualEffectView()
-            effect.material = .popover
-            effect.state = .active
-            effect.blendingMode = .behindWindow
-            effect.wantsLayer = true
-            effect.layer?.cornerRadius = cornerRadius
-            effect.layer?.cornerCurve = .continuous
-            effect.layer?.masksToBounds = true
-            hosting.translatesAutoresizingMaskIntoConstraints = false
-            effect.addSubview(hosting)
-            NSLayoutConstraint.activate([
-                hosting.leadingAnchor.constraint(equalTo: effect.leadingAnchor),
-                hosting.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
-                hosting.topAnchor.constraint(equalTo: effect.topAnchor),
-                hosting.bottomAnchor.constraint(equalTo: effect.bottomAnchor),
-            ])
-            background = effect
-        }
-        contentView = background
+        let container = NSView()
+        container.addSubview(background)
+        contentView = container
     }
 
     override var canBecomeKey: Bool { true }
 
-    override func resignKey() {
-        super.resignKey()
-        onResignKey?()
+    /// The content's ideal size, measured on a throwaway copy of the view.
+    func measure() -> CGSize {
+        NSHostingController(rootView: hosting.rootView)
+            .sizeThatFits(in: CGSize(width: PanelView.width, height: .greatestFiniteMagnitude))
     }
 
     /// Size the panel to its content, hanging from the anchor and kept on screen.
@@ -283,6 +273,11 @@ final class MenuBarPanel: NSPanel {
         }
         let frame = NSRect(x: x.rounded(), y: (anchor.y - size.height).rounded(),
                            width: size.width, height: size.height)
-        setFrame(frame, display: true, animate: false)
+        setFrame(frame, display: false, animate: false)
+        let bounds = NSRect(origin: .zero, size: size)
+        contentView?.frame = bounds
+        background.frame = bounds
+        hosting.frame = bounds
+        display()
     }
 }

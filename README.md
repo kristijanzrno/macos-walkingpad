@@ -42,7 +42,7 @@ another model, please open an issue saying whether it worked.
 
 - macOS 14 Sonoma or later (Apple silicon or Intel)
 - Bluetooth switched on
-- To build: Xcode 16 or later
+- To build it yourself: Xcode 26 or later
 
 No pairing is needed. On first run the app scans for the pad, then remembers
 it. The first time it starts, macOS asks to let WalkingPad use Bluetooth; say
@@ -51,7 +51,12 @@ Bluetooth**.
 
 ## Install
 
-The quickest route is Homebrew. See [Homebrew](#homebrew) at the end.
+The quickest route is Homebrew. See [Homebrew](#homebrew) at the end. You can
+also download `WalkingPad-<version>.zip` from the
+[releases](https://github.com/kristijanzrno/macos-walkingpad/releases), unzip
+it and move `WalkingPad.app` to Applications. Because the app isn't notarized,
+run `xattr -dr com.apple.quarantine /Applications/WalkingPad.app` once before
+opening it.
 
 To build it yourself:
 
@@ -209,51 +214,53 @@ swift scripts/make-icon.swift
 
 ## Homebrew
 
-The repository is a Homebrew tap. Homebrew builds WalkingPad from source on
-your Mac, so you need Xcode 16 or later installed. Because the build happens
-locally, macOS doesn't flag the app as downloaded from the internet.
+The repository is a Homebrew tap. It installs the ready-built app from the
+latest [release](https://github.com/kristijanzrno/macos-walkingpad/releases),
+so you don't need Xcode.
 
 ```bash
 brew tap kristijanzrno/walkingpad https://github.com/kristijanzrno/macos-walkingpad.git
 brew trust kristijanzrno/walkingpad
-brew install walkingpad
-```
-
-`brew trust` is needed on recent Homebrew versions, which only load formulae
-from third-party taps you've trusted.
-
-Homebrew installs the app inside its own folder. Link it into Applications once,
-so Spotlight and Launchpad find it, then start it:
-
-```bash
-ln -sfn "$(brew --prefix)/opt/walkingpad/WalkingPad.app" /Applications/WalkingPad.app
+brew install --cask walkingpad
 open -a WalkingPad
 ```
 
-The `walkingpad` command is on your `PATH` straight away.
+`brew trust` is needed on recent Homebrew versions, which only load casks and
+formulae from third-party taps you've trusted.
+
+That puts WalkingPad in `/Applications` and the `walkingpad` command on your
+`PATH`.
+
+The app isn't notarized by Apple (that needs a paid developer account), so
+macOS would refuse to open the downloaded copy. The cask removes the download
+quarantine flag after installing so it opens normally. If you'd rather not
+trust a prebuilt app, build it yourself (see [Install](#install)).
 
 Update:
 
 ```bash
-brew update && brew upgrade walkingpad
-osascript -e 'quit app "WalkingPad"' && open -a WalkingPad   # restart into the new build
+brew update && brew upgrade --cask walkingpad
+open -a WalkingPad
 ```
 
-The link in Applications follows upgrades, so you only make it once. macOS
-may ask for Bluetooth access again after an upgrade, because each build gets a
-new ad-hoc signature.
-
-Install the latest `main` instead of the latest release:
-
-```bash
-brew install --HEAD walkingpad
-```
+macOS may ask for Bluetooth access again after an update, because each build
+gets a new ad-hoc signature.
 
 Uninstall:
 
 ```bash
-osascript -e 'quit app "WalkingPad"'
-brew uninstall walkingpad
-rm /Applications/WalkingPad.app        # the link
+brew uninstall --cask walkingpad          # add --zap to delete history and settings too
 brew untap kristijanzrno/walkingpad
 ```
+
+### Releasing
+
+Bump `VERSION`, commit, then push a matching tag:
+
+```bash
+git tag v$(cat VERSION) && git push origin main v$(cat VERSION)
+```
+
+The [Release workflow](.github/workflows/release.yml) builds the app, attaches
+`WalkingPad-<version>.zip` to a GitHub release, and commits the new version and
+checksum to `Casks/walkingpad.rb`.

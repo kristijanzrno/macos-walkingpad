@@ -1,0 +1,49 @@
+name: Release
+
+# Push a tag like v1.2.0 (matching VERSION) to build WalkingPad.app, publish it
+# as a GitHub release, and point the Homebrew cask at the new zip.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Check the tag matches VERSION
+        run: |
+          VERSION=$(cat VERSION)
+          [ "v$VERSION" = "$GITHUB_REF_NAME" ] || { echo "Tag $GITHUB_REF_NAME doesn't match VERSION $VERSION"; exit 1; }
+          git checkout "$GITHUB_REF_NAME"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: |
+          xcodebuild -version
+          scripts/build-app.sh
+          ditto -c -k --keepParent build/WalkingPad.app "WalkingPad-$VERSION.zip"
+          echo "SHA256=$(shasum -a 256 "WalkingPad-$VERSION.zip" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "WalkingPad-$VERSION.zip" \
+            --title "WalkingPad $VERSION" --generate-notes
+
+      - name: Update the Homebrew cask
+        run: |
+          git checkout main
+          sed -i '' -E "s/^  version \".*\"/  version \"$VERSION\"/; s/^  sha256 \".*\"/  sha256 \"$SHA256\"/" Casks/walkingpad.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Cask: WalkingPad $VERSION"
+          git push origin main

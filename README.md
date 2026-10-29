@@ -219,8 +219,12 @@ so your SSH key needs access to the repository (check with
 
 ```bash
 brew tap kristijanzrno/walkingpad git@github.com:kristijanzrno/macos-walkingpad.git
+brew trust kristijanzrno/walkingpad
 brew install walkingpad
 ```
+
+`brew trust` is needed on recent Homebrew versions, which only load formulae
+from third-party taps you've trusted.
 
 Homebrew installs the app inside its own folder. Link it into Applications once,
 so Spotlight and Launchpad find it, then start it:

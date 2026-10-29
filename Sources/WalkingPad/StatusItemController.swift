@@ -8,6 +8,7 @@ import SwiftUI
 ///           middle click = connect/disconnect · scroll = faster/slower
 /// Popup:    space/s/return = start/stop · ←/→ or -/+ = speed · m = cycle mode
 ///           c = connect/disconnect · esc = close · ⌘, = settings · ⌘Q = quit
+@MainActor
 final class StatusItemController: NSObject {
     private let pad: Pad
     private let openSettings: () -> Void
@@ -59,7 +60,7 @@ final class StatusItemController: NSObject {
         withObservationTracking {
             updateButton()
         } onChange: { [weak self] in
-            DispatchQueue.main.async { self?.observe() }
+            Task { @MainActor in self?.observe() }
         }
     }
 

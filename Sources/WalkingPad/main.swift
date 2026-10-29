@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pad: Pad!
     private var statusItem: StatusItemController!
@@ -11,7 +12,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Settings.register()
         pad = Pad()
         statusItem = StatusItemController(pad: pad, openSettings: { [weak self] in self?.showSettings() })
-        listener = Control.listen { [weak self] line in self?.handle(line) ?? "error: not ready" }
+        listener = Control.listen { [weak self] line in
+            MainActor.assumeIsolated { self?.handle(line) ?? "error: not ready" }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -65,7 +68,7 @@ if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "--render-previ
 }
 
 let app = NSApplication.shared
-let delegate = AppDelegate()
+let delegate = MainActor.assumeIsolated { AppDelegate() }
 app.delegate = delegate
 app.setActivationPolicy(.accessory)
 app.run()

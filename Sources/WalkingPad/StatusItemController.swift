@@ -35,7 +35,7 @@ final class StatusItemController: NSObject {
             pad: pad,
             openSettings: { [weak self] in self?.close(); openSettings() },
             quit: { NSApp.terminate(nil) },
-            onSize: { [weak self] _ in self?.resizePanel() }
+            onSize: { [weak self] size in self?.contentSize = size; self?.resizePanel() }
         ))
         // Close when another app comes forward. Not on resignKey: when macOS
         // declines to activate us (opened from the CLI, say), the panel loses
@@ -161,11 +161,19 @@ final class StatusItemController: NSObject {
         updateButton()
     }
 
-    /// Sizes the panel to the SwiftUI content's ideal size, measured fresh
-    /// each time so it never shows a stale height.
+    /// The SwiftUI content's ideal size, as last reported by the view.
+    private var contentSize: CGSize = .zero
+
+    /// Sizes the panel to its content and hangs it under the menu bar item.
+    /// Before the content has reported a size, measure it directly.
     private func resizePanel() {
-        let size = panel.hosting.fittingSize
-        guard size.width > 0, size.height > 0 else { return }
+        var size = contentSize
+        if size.width <= 0 || size.height <= 0 {
+            size = panel.hosting.fittingSize
+        }
+        if size.width <= 0 || size.height <= 0 {
+            size = CGSize(width: PanelView.width, height: 480)
+        }
         panel.place(size: size)
     }
 
@@ -212,7 +220,7 @@ final class MenuBarPanel: NSPanel {
 
     init<Content: View>(content: Content) {
         let hosting = NSHostingView(rootView: AnyView(content))
-        hosting.sizingOptions = []
+        hosting.sizingOptions = [.intrinsicContentSize]
         self.hosting = hosting
 
         if #available(macOS 26.0, *) {

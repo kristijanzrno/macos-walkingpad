@@ -1,6 +1,6 @@
 cask "walkingpad" do
-  version "0.0.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  version "1.1.0"
+  sha256 "ef7a2805a8a7cf9776a6a6f7e265ffce8befe7241819af4b2dc6c2643e298c16"
 
   url "https://github.com/kristijanzrno/macos-walkingpad/releases/download/v#{version}/WalkingPad-#{version}.zip"
   name "WalkingPad"
